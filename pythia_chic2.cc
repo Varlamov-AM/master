@@ -324,8 +324,7 @@ int main(int argc, char* argv[]) {
 	      pz = pythia.event[dghtJ2].pz();
 	      p0 = pythia.event[dghtJ2].e();
 
-	      
-	      cout << "phi_{e^{+}} = " << pythia.event[dghtJ2].phi() << " phi_{e^{-}} = " << pythia.event[dghtJ1].phi() << " phi_{gamma} = " << pythia.event[dghtChi2].phi() << "   |phi_{e^{+}} - phi_{e^{-}}|  = "  << fabs(pythia.event[dghtJ2].phi() - pythia.event[dghtJ1].phi()) << "     " << (pythia.event[dghtJ2].phi() + pythia.event[dghtJ1].phi())/2 - pythia.event[i].phi() <<  "\n";
+	  
 
 	      TLorentzVector pPosi(px,py,pz,p0);
 	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi);
@@ -458,8 +457,6 @@ int main(int argc, char* argv[]) {
 	      py = pythia.event[dghtJ2].py();
 	      pz = pythia.event[dghtJ2].pz();
 	      p0 = pythia.event[dghtJ2].e();
-	      
-	      cout << "phi_{e^{+}} = " << pythia.event[dghtJ2].phi() << " phi_{e^{-}} = " << pythia.event[dghtJ1].phi() << " phi_{gamma} = " << pythia.event[dghtChi2].phi() << "\n";
 
 	      TLorentzVector pPosi(px,py,pz,p0);
 
@@ -597,8 +594,6 @@ int main(int argc, char* argv[]) {
 	      py = pythia.event[dghtJ2].py();
 	      pz = pythia.event[dghtJ2].pz();
 	      p0 = pythia.event[dghtJ2].e();
-
-	      cout << "phi_{e^{+}} = " << pythia.event[dghtJ2].phi() << " phi_{e^{-}} = " << pythia.event[dghtJ1].phi() << " phi_{gamma} = " << pythia.event[dghtChi2].phi() << "\n";
 
 	      TLorentzVector pPosi(px,py,pz,p0);
 
