@@ -25,19 +25,23 @@
 
 using namespace Pythia8;
 
+
 void Init(Pythia*);
 void Invariant_mass_spectr_creator(TLorentzVector, TLorentzVector, TLorentzVector,
-				   TH2F *, TH2F *, TH2F *, TH2F *, TH2F *, TH2F *, TH2F *, TH2F *, TH2F *, double);
+				   TH2F*, TH2F*, TH2F*, TH2F*, TH2F*, TH2F*,
+				   TH2F*, TH2F*, TH2F*, TH2F*, double);
 TLorentzVector resolutionPhoton  (TLorentzVector);
 TLorentzVector resolutionElectron(TLorentzVector);
 
 bool IsElectronDetectedInCTS(TLorentzVector);
 bool IsPhotonDetectedInEMCAL(TLorentzVector);
-bool IsPhotonDetectedInPHOS (TLorentzVector); 
+bool IsPhotonDetectedInPHOS (TLorentzVector);
+void Background_handler (Pythia*, int *, int*, int*, int, int, int,TLorentzVector*, TLorentzVector*, TLorentzVector*, TLorentzVector*, TLorentzVector*, TH2F*, TH2F*);
 
 
 
 int main(int argc, char* argv[]) {
+
 
   // read input parameters
   printf("argc = %d, argv[0] = %s\n",argc,argv[0]);
@@ -173,11 +177,14 @@ int main(int argc, char* argv[]) {
   TH2F *hMass2Gamma = new TH2F("hMass2Gamma","M(#gamma#gamma) vs p_{T}",150.,0.0,0.3,50,0.,50.);
   hMass2Gamma->Sumw2();
 
-  TH2F *hMassElecPosi = new TH2F("hMassElecPosi","M(e^{+}e^{-}) vs p_{T}",200.,2.6,3.6,50,0.,50.);
+  TH2F *hMassElecPosi = new TH2F("hMassElecPosi","M(e^{+}e^{-}) vs p_{T}",200., 2.1, 4.1, 50, 0. ,50.);
   hMassElecPosi->Sumw2();
 
   TH2F *hMassGamElecPosi = new TH2F("hMassGamElecPosi","M(#gamma e^{+}e^{-}) vs p_{T}",200.,3.,4.,50,0.,50.);
   hMassGamElecPosi->Sumw2();
+
+  TH2F *hMassGamElecPosi_diff = new TH2F("hMassGamElecPosi_diff","M(#gamma e^{+}e^{-}) vs p_{T}",160.,0.,0.8,50,0.,50.);
+  hMassGamElecPosi_diff->Sumw2();
 
   TH2F *hMassGamElecPosi_cndtn_1 = new TH2F("hMassGamElecPosi_cndtn_1","M(#gamma e^{+}e^{-}) vs p_{T}",200.,3.,4.,50,0.,50.);
   hMassGamElecPosi_cndtn_1->Sumw2();
@@ -215,6 +222,11 @@ int main(int argc, char* argv[]) {
   electrons_hist_array[2]->Sumw2();
   electrons_hist_array[3]->Sumw2();
 
+  TH2F *hMassElecPosi_background = new TH2F("hMassElecPosi_background","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
+  hMassElecPosi_background->Sumw2();
+  TH2F *hMassElecPosi_true_background = new TH2F("hMassElecPosi_true_background","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
+  hMassElecPosi_true_background->Sumw2();
+
   const int idChic0        =  10441;
   const int idChic1        =  20443;
   const int idChic2        =  445;
@@ -227,6 +239,15 @@ int main(int argc, char* argv[]) {
 
   // Begin event loop. Generate event
 
+  int elec[5000];
+  int posi[5000];
+  int gamm[5000];
+  TLorentzVector elec_data[5000];
+  TLorentzVector posi_data[5000];
+  TLorentzVector gamma_data[5000];
+  TLorentzVector elec_true_data[5000];
+  TLorentzVector posi_true_data[5000];
+
   int iEvent2Print = 0;
   for (int iEvent = 0; iEvent < nEvents; ++iEvent) {
     if (!pythia.next()) continue;
@@ -234,12 +255,42 @@ int main(int argc, char* argv[]) {
     // print first nEvent2Print events
     if (iEvent2Print < nEvent2Print) pythia.event.list();
     iEvent2Print++;
-    
-
+   
     // Loop over all particles in the generated event
     double px,py,pz,p0;
+
+    /*
+
+    int* elec = new int[pythia.event.size()];
+    int* posi = new int[pythia.event.size()];
+    int* gamm = new int[pythia.event.size()];
+
+    */
+
+    int elec_num = 0;
+    int posi_num = 0;
+    int gam_num = 0;
     
     for (int i = 0; i < pythia.event.size(); ++i) {
+
+      if (pythia.event[i].id() == idJpsi){
+
+	int dghtJpsi1 = pythia.event[i].daughter1(); // first daughter
+        int dghtJpsi2 = pythia.event[i].daughter2(); // last  daughter
+	
+	if (dghtJpsi2 - dghtJpsi1 != 1) continue;
+
+	
+	*(elec + elec_num) = dghtJpsi1;
+          elec_num++;
+
+	*(posi + posi_num) = dghtJpsi2;
+	  posi_num++;
+
+	
+
+      }
+
       // Select final-state chi_c2 within |y|<0.5
       if (pythia.event[i].id() == idChic2 &&
 	  pythia.event[i].status() == -62 &&
@@ -329,22 +380,22 @@ int main(int argc, char* argv[]) {
 	      TLorentzVector pPosi(px,py,pz,p0);
 	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi);
 
-	      hPositron_pt_all->Fill(pPosi_smeared.Pt(),br[2]);
-	      hElectron_pt_all->Fill(pElec_smeared.Pt(),br[2]);
+	      hPositron_pt_all->Fill(pPosi_smeared.Pt());
+	      hElectron_pt_all->Fill(pElec_smeared.Pt());
 
 	      Invariant_mass_spectr_creator(pElec_smeared, pPosi_smeared, pGam_smeared,
-					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_cndtn_1,
+					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_diff, hMassGamElecPosi_cndtn_1,
 					    hMassGamElecPosi_cndtn_2, hMassGamElecPosi_cndtn_3, hMassGamElecPosi_mass_diff,
 					    hMassGamElecPosi_mass_diff_cndtn_1, hMassGamElecPosi_mass_diff_cndtn_2,
-					    hMassGamElecPosi_mass_diff_cndtn_3, br[2]);
+					    hMassGamElecPosi_mass_diff_cndtn_3, 1.);
 
 	      if (IsElectronDetectedInCTS(pElec_smeared) &&
 		  IsElectronDetectedInCTS(pPosi_smeared) &&
 		  IsPhotonDetectedInPHOS(pGam_smeared))
 		{  
 		  
-		  hChiC2_pt_cndtn_1 ->Fill(pt,br[2]);
-		  hChiC2_y_cndtn_1  ->Fill(y,br[2]);
+		  hChiC2_pt_cndtn_1 ->Fill(pt);
+		  hChiC2_y_cndtn_1  ->Fill(y);
 
 		}
 
@@ -356,8 +407,8 @@ int main(int argc, char* argv[]) {
 		  
 		{ 
 		  
-		  hChiC2_pt_cndtn_2 ->Fill(pt,br[2]);
-		  hChiC2_y_cndtn_2  ->Fill(y,br[2]);
+		  hChiC2_pt_cndtn_2 ->Fill(pt);
+		  hChiC2_y_cndtn_2  ->Fill(y);
 	    
 		}
 
@@ -368,8 +419,8 @@ int main(int argc, char* argv[]) {
 		  
 		{ 
 		  
-		  hChiC2_pt_cndtn_3 ->Fill(pt,br[2]);
-		  hChiC2_y_cndtn_3  ->Fill(y,br[2]);
+		  hChiC2_pt_cndtn_3 ->Fill(pt);
+		  hChiC2_y_cndtn_3  ->Fill(y);
 	    
 		}
 	    }
@@ -464,13 +515,13 @@ int main(int argc, char* argv[]) {
 
 
 	      Invariant_mass_spectr_creator(pElec_smeared, pPosi_smeared, pGam_smeared,
-					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_cndtn_1,
+					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_diff, hMassGamElecPosi_cndtn_1,
 					    hMassGamElecPosi_cndtn_2, hMassGamElecPosi_cndtn_3, hMassGamElecPosi_mass_diff,
 					    hMassGamElecPosi_mass_diff_cndtn_1, hMassGamElecPosi_mass_diff_cndtn_2,
-					    hMassGamElecPosi_mass_diff_cndtn_3, br[0]);
+					    hMassGamElecPosi_mass_diff_cndtn_3, 1.);
 
-	      hPositron_chic0_pt_all->Fill(pPosi_smeared.Pt(), br[0]);
-	      hElectron_chic0_pt_all->Fill(pElec_smeared.Pt(), br[0]);
+	      hPositron_chic0_pt_all->Fill(pPosi_smeared.Pt());
+	      hElectron_chic0_pt_all->Fill(pElec_smeared.Pt());
 
 	      if (IsElectronDetectedInCTS(pElec_smeared) &&
 		  IsElectronDetectedInCTS(pPosi_smeared) &&
@@ -478,8 +529,8 @@ int main(int argc, char* argv[]) {
 		 
 		{  
 		  
-		  hChiC0_pt_cndtn_1 ->Fill(pt, br[0]);
-		  hChiC0_y_cndtn_1  ->Fill(y, br[0]);
+		  hChiC0_pt_cndtn_1 ->Fill(pt);
+		  hChiC0_y_cndtn_1  ->Fill(y);
 
 		}
 
@@ -491,8 +542,8 @@ int main(int argc, char* argv[]) {
 		  
 		{ 
 		  
-		  hChiC0_pt_cndtn_2 ->Fill(pt, br[0]);
-		  hChiC0_y_cndtn_2  ->Fill(y, br[0]);
+		  hChiC0_pt_cndtn_2 ->Fill(pt);
+		  hChiC0_y_cndtn_2  ->Fill(y);
 	    
 		}
 
@@ -502,8 +553,8 @@ int main(int argc, char* argv[]) {
 		  
 		{ 
 
-		  hChiC0_pt_cndtn_3 ->Fill(pt,br[0]);
-		  hChiC0_y_cndtn_3  ->Fill(y,br[0]);
+		  hChiC0_pt_cndtn_3 ->Fill(pt);
+		  hChiC0_y_cndtn_3  ->Fill(y);
 	    
 		}
 	    }
@@ -549,7 +600,7 @@ int main(int argc, char* argv[]) {
 	  // skip event if the number of J/psi daughters is not 2
 	  if (dghtJ2 - dghtJ1 != 1) continue;
 
-	  hGamma_chic1_pt_all->Fill(pGam_smeared.Pt(), br[1]);
+	  hGamma_chic1_pt_all->Fill(pGam_smeared.Pt());
 
 
 	  // select decay J/psi -> e+ e-
@@ -600,13 +651,13 @@ int main(int argc, char* argv[]) {
 	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi);
 
 	      Invariant_mass_spectr_creator(pElec_smeared, pPosi_smeared, pGam_smeared,
-					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_cndtn_1,
+					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_diff, hMassGamElecPosi_cndtn_1,
 					    hMassGamElecPosi_cndtn_2, hMassGamElecPosi_cndtn_3, hMassGamElecPosi_mass_diff,
 					    hMassGamElecPosi_mass_diff_cndtn_1, hMassGamElecPosi_mass_diff_cndtn_2,
-					    hMassGamElecPosi_mass_diff_cndtn_3, br[1]);
+					    hMassGamElecPosi_mass_diff_cndtn_3, 1.);
 
-	      hPositron_chic1_pt_all->Fill(pPosi_smeared.Pt(), br[1]);
-	      hElectron_chic1_pt_all->Fill(pElec_smeared.Pt(), br[1]);
+	      hPositron_chic1_pt_all->Fill(pPosi_smeared.Pt());
+	      hElectron_chic1_pt_all->Fill(pElec_smeared.Pt());
 
 	      if (IsElectronDetectedInCTS(pElec_smeared) &&
 		  IsElectronDetectedInCTS(pPosi_smeared) &&
@@ -614,8 +665,8 @@ int main(int argc, char* argv[]) {
 		 
 		{  
 		  
-		  hChiC1_pt_cndtn_1 ->Fill(pt, br[1]);
-		  hChiC1_y_cndtn_1  ->Fill(y, br[1]);
+		  hChiC1_pt_cndtn_1 ->Fill(pt);
+		  hChiC1_y_cndtn_1  ->Fill(y);
 
 		}
 
@@ -627,8 +678,8 @@ int main(int argc, char* argv[]) {
 		  
 		{ 
 		  
-		  hChiC1_pt_cndtn_2 ->Fill(pt, br[1]);
-		  hChiC1_y_cndtn_2  ->Fill(y, br[1]);
+		  hChiC1_pt_cndtn_2 ->Fill(pt);
+		  hChiC1_y_cndtn_2  ->Fill(y);
 	    
 		}
 
@@ -638,8 +689,8 @@ int main(int argc, char* argv[]) {
 		  
 		{ 
 
-		  hChiC1_pt_cndtn_3 ->Fill(pt,br[1]);
-		  hChiC1_y_cndtn_3  ->Fill(y,br[1]);
+		  hChiC1_pt_cndtn_3 ->Fill(pt);
+		  hChiC1_y_cndtn_3  ->Fill(y);
 	    
 		}
 	    }
@@ -680,6 +731,15 @@ int main(int argc, char* argv[]) {
 	}
       }
     } // End of particle loop
+    
+    // in this place we should make combinatory background    
+
+    Background_handler(&(pythia), elec, posi, gamm, elec_num, posi_num, gam_num,elec_data, posi_data, gamma_data, elec_true_data, posi_true_data, hMassElecPosi_background, hMassElecPosi_true_background);
+        
+    elec_num = 0;
+    posi_num = 0;
+    gam_num = 0;
+  
   } // End of event loop
 
   // Statistics on event generation.
@@ -695,7 +755,7 @@ int main(int argc, char* argv[]) {
   double ptBinSize = (ptMax-ptMin) / nPtBins;
   double yBinSize  = (yMax-yMin) / nyBins;
 
-  hChiC_phi_cndtn_3       ->Scale(sigmaweight/(1. * 2. * 360.)); 
+  hChiC_phi_cndtn_3        ->Scale(sigmaweight/(1. * 2. * 360.)); 
   hChiC2_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
   hChiC0_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
   hChiC1_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
@@ -732,52 +792,55 @@ int main(int argc, char* argv[]) {
   sprintf(fn, "%s", "pythia_chic2.root");
   TFile* outFile = new TFile(fn, "RECREATE");
 
-  hChiC_phi_cndtn_3                 ->Write();
-  hChiC2_pt_all                     ->Write();
-  hChiC0_pt_all                     ->Write();
-  hChiC1_pt_all                     ->Write();
-  hChiC2_pt_cndtn_1                 ->Write();
-  hChiC0_pt_cndtn_1                 ->Write();
-  hChiC1_pt_cndtn_1                 ->Write();
-  hChiC2_y_cndtn_1                  ->Write();
-  hChiC0_y_cndtn_1                  ->Write();
-  hChiC1_y_cndtn_1                  ->Write();
-  hChiC2_pt_cndtn_2                 ->Write();
-  hChiC0_pt_cndtn_2                 ->Write();
-  hChiC1_pt_cndtn_2                 ->Write();
-  hChiC2_y_cndtn_2                  ->Write();
-  hChiC0_y_cndtn_2                  ->Write();
-  hChiC1_y_cndtn_2                  ->Write();
-  hChiC2_pt_cndtn_3                 ->Write();
-  hChiC0_pt_cndtn_3                 ->Write();
-  hChiC1_pt_cndtn_3                 ->Write();
-  hChiC2_y_cndtn_3                  ->Write();
-  hChiC0_y_cndtn_3                  ->Write();
-  hChiC1_y_cndtn_3                  ->Write();
-  hGamma_pt_all                     ->Write();
-  hGamma_chic0_pt_all               ->Write();
-  hGamma_chic1_pt_all               ->Write();
-  hElectron_pt_all                  ->Write();
-  hElectron_chic0_pt_all            ->Write();
-  hElectron_chic1_pt_all            ->Write();
-  hPositron_pt_all                  ->Write();
-  hPositron_chic0_pt_all            ->Write();
-  hPositron_chic1_pt_all            ->Write();
-  hMass2Gamma                       ->Write();
-  hMassElecPosi                     ->Write();
-  hMassGamElecPosi                  ->Write();
-  hMassGamElecPosi_cndtn_1          ->Write();
-  hMassGamElecPosi_cndtn_2          ->Write();
-  hMassGamElecPosi_cndtn_3          ->Write();
-  hMassGamElecPosi_mass_diff        ->Write();
-  hMassGamElecPosi_mass_diff_cndtn_1->Write();
-  hMassGamElecPosi_mass_diff_cndtn_2->Write();
-  hMassGamElecPosi_mass_diff_cndtn_3->Write();
-  hChiC_electrons_phi_rapid         ->Write();
-  electrons_hist_array[0]           ->Write();
-  electrons_hist_array[1]           ->Write();
-  electrons_hist_array[2]           ->Write();
-  electrons_hist_array[3]           ->Write();
+  hChiC_phi_cndtn_3                          ->Write();
+  hChiC2_pt_all                              ->Write();
+  hChiC0_pt_all                              ->Write();
+  hChiC1_pt_all                              ->Write();
+  hChiC2_pt_cndtn_1                          ->Write();
+  hChiC0_pt_cndtn_1                          ->Write();
+  hChiC1_pt_cndtn_1                          ->Write();
+  hChiC2_y_cndtn_1                           ->Write();
+  hChiC0_y_cndtn_1                           ->Write();
+  hChiC1_y_cndtn_1                           ->Write();
+  hChiC2_pt_cndtn_2                          ->Write();
+  hChiC0_pt_cndtn_2                          ->Write();
+  hChiC1_pt_cndtn_2                          ->Write();
+  hChiC2_y_cndtn_2                           ->Write();
+  hChiC0_y_cndtn_2                           ->Write();
+  hChiC1_y_cndtn_2                           ->Write();
+  hChiC2_pt_cndtn_3                          ->Write();
+  hChiC0_pt_cndtn_3                          ->Write();
+  hChiC1_pt_cndtn_3                          ->Write();
+  hChiC2_y_cndtn_3                           ->Write();
+  hChiC0_y_cndtn_3                           ->Write();
+  hChiC1_y_cndtn_3                           ->Write();
+  hGamma_pt_all                              ->Write();
+  hGamma_chic0_pt_all                        ->Write();
+  hGamma_chic1_pt_all                        ->Write();
+  hElectron_pt_all                           ->Write();
+  hElectron_chic0_pt_all                     ->Write();
+  hElectron_chic1_pt_all                     ->Write();
+  hPositron_pt_all                           ->Write();
+  hPositron_chic0_pt_all                     ->Write();
+  hPositron_chic1_pt_all                     ->Write();
+  hMass2Gamma                                ->Write();
+  hMassElecPosi                              ->Write();
+  hMassGamElecPosi                           ->Write();
+  hMassGamElecPosi_diff                      ->Write();
+  hMassGamElecPosi_cndtn_1                   ->Write();
+  hMassGamElecPosi_cndtn_2                   ->Write();
+  hMassGamElecPosi_cndtn_3                   ->Write();
+  hMassGamElecPosi_mass_diff                 ->Write();
+  hMassGamElecPosi_mass_diff_cndtn_1         ->Write();
+  hMassGamElecPosi_mass_diff_cndtn_2         ->Write();
+  hMassGamElecPosi_mass_diff_cndtn_3         ->Write();
+  hChiC_electrons_phi_rapid                  ->Write();
+  electrons_hist_array[0]                    ->Write();
+  electrons_hist_array[1]                    ->Write();
+  electrons_hist_array[2]                    ->Write();
+  electrons_hist_array[3]                    ->Write();
+  hMassElecPosi_background                   ->Write();
+  hMassElecPosi_true_background              ->Write();
 
   outFile->Close();
   delete outFile;
