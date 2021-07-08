@@ -36,7 +36,10 @@ TLorentzVector resolutionElectron(TLorentzVector);
 bool IsElectronDetectedInCTS(TLorentzVector);
 bool IsPhotonDetectedInEMCAL(TLorentzVector);
 bool IsPhotonDetectedInPHOS (TLorentzVector);
-void Background_handler (Pythia*, int *, int*, int*, int, int, int,TLorentzVector*, TLorentzVector*, TLorentzVector*, TLorentzVector*, TLorentzVector*, TH2F*, TH2F*);
+void Background_handler (Pythia*, int *, int*, int*, int, int, int, 
+			 TLorentzVector*, TLorentzVector*, TLorentzVector*, 
+			 TLorentzVector*, TLorentzVector*, TLorentzVector*,
+			 TH2F*, TH2F*, TH2F*);
 
 
 
@@ -224,8 +227,13 @@ int main(int argc, char* argv[]) {
 
   TH2F *hMassElecPosi_background = new TH2F("hMassElecPosi_background","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
   hMassElecPosi_background->Sumw2();
+  
   TH2F *hMassElecPosi_true_background = new TH2F("hMassElecPosi_true_background","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
   hMassElecPosi_true_background->Sumw2();
+
+  TH2F *hMassGamElecPosi_background_mass_diff = new TH2F("hMassGamElecPosi_background_mass_diff","M(e^{+}e^{-}#gamma) - M(e^{+}e^{-}) vs p_{T}", 200., 0, 0.8, 50, 0., 50.);
+  hMassGamElecPosi_background_mass_diff->Sumw2();
+ 
 
   const int idChic0        =  10441;
   const int idChic1        =  20443;
@@ -247,6 +255,7 @@ int main(int argc, char* argv[]) {
   TLorentzVector gamma_data[5000];
   TLorentzVector elec_true_data[5000];
   TLorentzVector posi_true_data[5000];
+  TLorentzVector Jpsi_data[5000];
 
   int iEvent2Print = 0;
   for (int iEvent = 0; iEvent < nEvents; ++iEvent) {
@@ -273,23 +282,23 @@ int main(int argc, char* argv[]) {
     
     for (int i = 0; i < pythia.event.size(); ++i) {
 
-      if (pythia.event[i].id() == idJpsi){
-
-	int dghtJpsi1 = pythia.event[i].daughter1(); // first daughter
-        int dghtJpsi2 = pythia.event[i].daughter2(); // last  daughter
-	
-	if (dghtJpsi2 - dghtJpsi1 != 1) continue;
-
-	
-	*(elec + elec_num) = dghtJpsi1;
+      if (pythia.event[i].id() == idElectron){	
+	*(elec + elec_num) = i;
           elec_num++;
+      }
 
-	*(posi + posi_num) = dghtJpsi2;
+      if (pythia.event[i].id() == -1 * idElectron){	
+	*(posi + posi_num) = i;
 	  posi_num++;
-
+      }
+      
+      if (pythia.event[i].id() == idPhoton){	
+	*(gamm + gam_num) = i;
+	  gam_num++;
+      }
 	
 
-      }
+      
 
       // Select final-state chi_c2 within |y|<0.5
       if (pythia.event[i].id() == idChic2 &&
@@ -734,7 +743,11 @@ int main(int argc, char* argv[]) {
     
     // in this place we should make combinatory background    
 
-    Background_handler(&(pythia), elec, posi, gamm, elec_num, posi_num, gam_num,elec_data, posi_data, gamma_data, elec_true_data, posi_true_data, hMassElecPosi_background, hMassElecPosi_true_background);
+    Background_handler(&(pythia), elec, posi, gamm, elec_num, posi_num, gam_num, 
+		       elec_data, posi_data, gamma_data, 
+		       elec_true_data, posi_true_data, Jpsi_data, 
+		       hMassElecPosi_background, hMassElecPosi_true_background,
+		       hMassGamElecPosi_background_mass_diff);
         
     elec_num = 0;
     posi_num = 0;
@@ -792,55 +805,57 @@ int main(int argc, char* argv[]) {
   sprintf(fn, "%s", "pythia_chic2.root");
   TFile* outFile = new TFile(fn, "RECREATE");
 
-  hChiC_phi_cndtn_3                          ->Write();
-  hChiC2_pt_all                              ->Write();
-  hChiC0_pt_all                              ->Write();
-  hChiC1_pt_all                              ->Write();
-  hChiC2_pt_cndtn_1                          ->Write();
-  hChiC0_pt_cndtn_1                          ->Write();
-  hChiC1_pt_cndtn_1                          ->Write();
-  hChiC2_y_cndtn_1                           ->Write();
-  hChiC0_y_cndtn_1                           ->Write();
-  hChiC1_y_cndtn_1                           ->Write();
-  hChiC2_pt_cndtn_2                          ->Write();
-  hChiC0_pt_cndtn_2                          ->Write();
-  hChiC1_pt_cndtn_2                          ->Write();
-  hChiC2_y_cndtn_2                           ->Write();
-  hChiC0_y_cndtn_2                           ->Write();
-  hChiC1_y_cndtn_2                           ->Write();
-  hChiC2_pt_cndtn_3                          ->Write();
-  hChiC0_pt_cndtn_3                          ->Write();
-  hChiC1_pt_cndtn_3                          ->Write();
-  hChiC2_y_cndtn_3                           ->Write();
-  hChiC0_y_cndtn_3                           ->Write();
-  hChiC1_y_cndtn_3                           ->Write();
-  hGamma_pt_all                              ->Write();
-  hGamma_chic0_pt_all                        ->Write();
-  hGamma_chic1_pt_all                        ->Write();
-  hElectron_pt_all                           ->Write();
-  hElectron_chic0_pt_all                     ->Write();
-  hElectron_chic1_pt_all                     ->Write();
-  hPositron_pt_all                           ->Write();
-  hPositron_chic0_pt_all                     ->Write();
-  hPositron_chic1_pt_all                     ->Write();
-  hMass2Gamma                                ->Write();
-  hMassElecPosi                              ->Write();
-  hMassGamElecPosi                           ->Write();
-  hMassGamElecPosi_diff                      ->Write();
-  hMassGamElecPosi_cndtn_1                   ->Write();
-  hMassGamElecPosi_cndtn_2                   ->Write();
-  hMassGamElecPosi_cndtn_3                   ->Write();
-  hMassGamElecPosi_mass_diff                 ->Write();
-  hMassGamElecPosi_mass_diff_cndtn_1         ->Write();
-  hMassGamElecPosi_mass_diff_cndtn_2         ->Write();
-  hMassGamElecPosi_mass_diff_cndtn_3         ->Write();
-  hChiC_electrons_phi_rapid                  ->Write();
-  electrons_hist_array[0]                    ->Write();
-  electrons_hist_array[1]                    ->Write();
-  electrons_hist_array[2]                    ->Write();
-  electrons_hist_array[3]                    ->Write();
-  hMassElecPosi_background                   ->Write();
-  hMassElecPosi_true_background              ->Write();
+  hChiC_phi_cndtn_3                                 ->Write();
+  hChiC2_pt_all                                     ->Write();
+  hChiC0_pt_all                                     ->Write();
+  hChiC1_pt_all                                     ->Write();
+  hChiC2_pt_cndtn_1                                 ->Write();
+  hChiC0_pt_cndtn_1                                 ->Write();
+  hChiC1_pt_cndtn_1                                 ->Write();
+  hChiC2_y_cndtn_1                                  ->Write();
+  hChiC0_y_cndtn_1                                  ->Write();
+  hChiC1_y_cndtn_1                                  ->Write();
+  hChiC2_pt_cndtn_2                                 ->Write();
+  hChiC0_pt_cndtn_2                                 ->Write();
+  hChiC1_pt_cndtn_2                                 ->Write();
+  hChiC2_y_cndtn_2                                  ->Write();
+  hChiC0_y_cndtn_2                                  ->Write();
+  hChiC1_y_cndtn_2                                  ->Write();
+  hChiC2_pt_cndtn_3                                 ->Write();
+  hChiC0_pt_cndtn_3                                 ->Write();
+  hChiC1_pt_cndtn_3                                 ->Write();
+  hChiC2_y_cndtn_3                                  ->Write();
+  hChiC0_y_cndtn_3                                  ->Write();
+  hChiC1_y_cndtn_3                                  ->Write();
+  hGamma_pt_all                                     ->Write();
+  hGamma_chic0_pt_all                               ->Write();
+  hGamma_chic1_pt_all                               ->Write();
+  hElectron_pt_all                                  ->Write();
+  hElectron_chic0_pt_all                            ->Write();
+  hElectron_chic1_pt_all                            ->Write();
+  hPositron_pt_all                                  ->Write();
+  hPositron_chic0_pt_all                            ->Write();
+  hPositron_chic1_pt_all                            ->Write();
+  hMass2Gamma                                       ->Write();
+  hMassElecPosi                                     ->Write();
+  hMassGamElecPosi                                  ->Write();
+  hMassGamElecPosi_diff                             ->Write();
+  hMassGamElecPosi_cndtn_1                          ->Write();
+  hMassGamElecPosi_cndtn_2                          ->Write();
+  hMassGamElecPosi_cndtn_3                          ->Write();
+  hMassGamElecPosi_mass_diff                        ->Write();
+  hMassGamElecPosi_mass_diff_cndtn_1                ->Write();
+  hMassGamElecPosi_mass_diff_cndtn_2                ->Write();
+  hMassGamElecPosi_mass_diff_cndtn_3                ->Write();
+  hChiC_electrons_phi_rapid                         ->Write();
+  electrons_hist_array[0]                           ->Write();
+  electrons_hist_array[1]                           ->Write();
+  electrons_hist_array[2]                           ->Write();
+  electrons_hist_array[3]                           ->Write();
+  hMassElecPosi_background                          ->Write();
+  hMassElecPosi_true_background                     ->Write();
+  hMassGamElecPosi_background_mass_diff             ->Write();
+
 
   outFile->Close();
   delete outFile;
