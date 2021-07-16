@@ -2,26 +2,41 @@
 #include <TLorentzVector.h>
 #include "Pythia8/Pythia.h"
 #include <TH2.h>
+#include <string>
 
 using namespace Pythia8;
 
 TLorentzVector resolutionPhoton  (TLorentzVector);
-TLorentzVector resolutionElectron(TLorentzVector);
+TLorentzVector resolutionElectron(TLorentzVector, int);
 bool IsElectronDetectedInCTS(TLorentzVector);
-double Jpsi_Mass(double);
-double Jpsi_Sigma(double);
+bool IsElectronDetectedInALICE3(TLorentzVector, int);
+bool IsPhotonDetectedInPHOS(TLorentzVector);
+double Jpsi_Mass(double, int);
+double Jpsi_Sigma(double, int);
 
 
 void Background_handler(Pythia* pythia,
 			int* elec, int* posi, int* gamm,
 			int elec_num, int posi_num, int gam_num,
-			TLorentzVector* elec_data, TLorentzVector* posi_data,
+			TLorentzVector* elec_data, 
+			TLorentzVector* posi_data,
 			TLorentzVector* gamma_data,
-			TLorentzVector* elec_true_data, TLorentzVector* posi_true_data,
-			TLorentzVector* Jpsi_data,
-			TH2F* hMassElecPosi_background,
+			TLorentzVector* elec_true_data, 
+			TLorentzVector* posi_true_data,
+			TLorentzVector* Jpsi_data_ALICE0,
+			TLorentzVector* Jpsi_data_ALICE3_1,
+			TLorentzVector* Jpsi_data_ALICE3_2,
+			TLorentzVector* Jpsi_data_ALICE3_3,
+			TH2F* hMassElecPosi_background_ALICE0,
+			TH2F* hMassElecPosi_background_ALICE3_1,
+			TH2F* hMassElecPosi_background_ALICE3_2,
+			TH2F* hMassElecPosi_background_ALICE3_3,
 			TH2F* hMassElecPosi_true_background,
-			TH2F* hMassGamElecPosi_background_mass_diff){
+			TH2F* hMassGamElecPosi_background_mass_diff_ALICE0, 
+			TH2F* hMassGamElecPosi_background_mass_diff_ALICE3_1, 
+			TH2F* hMassGamElecPosi_background_mass_diff_ALICE3_2, 
+			TH2F* hMassGamElecPosi_background_mass_diff_ALICE3_3,
+			double br){
 
   /* This method is designed to handle background events. As variables, 
      the method receives a pointer to the pythia generator, pointers to 
@@ -47,7 +62,10 @@ void Background_handler(Pythia* pythia,
 			 pythia->event[*(elec + i)].pz(), 
 			 pythia->event[*(elec + i)].e());
 
-      elec_data[i] = resolutionElectron(tmp);
+      *(elec_data + 3 * i + 0) = resolutionElectron(tmp, 0);
+      *(elec_data + 3 * i + 1) = resolutionElectron(tmp, 1);
+      *(elec_data + 3 * i + 2) = resolutionElectron(tmp, 2);
+      *(elec_data + 3 * i + 3) = resolutionElectron(tmp, 2);
       elec_true_data[i] = tmp;
       
     }
@@ -60,7 +78,10 @@ void Background_handler(Pythia* pythia,
 			 pythia->event[*(posi + i)].pz(), 
 			 pythia->event[*(posi + i)].e());
       
-      posi_data[i] = resolutionElectron(tmp);
+      *(posi_data + 3 * i + 0) = resolutionElectron(tmp, 0);
+      *(posi_data + 3 * i + 1) = resolutionElectron(tmp, 1);
+      *(posi_data + 3 * i + 2) = resolutionElectron(tmp, 2);
+      *(posi_data + 3 * i + 3) = resolutionElectron(tmp, 3);
       posi_true_data[i] = tmp;
       
     }
@@ -80,17 +101,55 @@ void Background_handler(Pythia* pythia,
   if (elec_num != 0 && posi_num != 0){  
     for (int i = 0; i < elec_num; i++){
       for (int j = 0; j < posi_num; j++){
-	if (IsElectronDetectedInCTS(elec_true_data[i]) &&
-	    IsElectronDetectedInCTS(posi_true_data[j])){
-	  hMassElecPosi_background->Fill((elec_data[i] + posi_data[j]).M(),
-					 (elec_data[i] + posi_data[j]).Pt()); 
-	  hMassElecPosi_true_background->Fill((elec_true_data[i] + posi_true_data[j]).M(),
-					      (elec_true_data[i] + posi_true_data[j]).Pt()); 
+	for (int k = 0; k <= 3; k++){
+	  if (k == 0){
+	    if (IsElectronDetectedInCTS(elec_true_data[i]) &&
+		IsElectronDetectedInCTS(posi_true_data[j])){
+	      hMassElecPosi_background_ALICE0->Fill((*(elec_data + 3 * i + k) +
+						     *(posi_data + 3 * j + k)).M(),
+						    (*(elec_data + 3 * i + k) +
+						     *(posi_data + 3 * j + k)).Pt()); 
+	    }
+	  }
+	  if (k == 1){
+	    if (IsElectronDetectedInALICE3(elec_true_data[i], 2) &&
+		IsElectronDetectedInALICE3(posi_true_data[j], 2)){
+	      hMassElecPosi_background_ALICE3_1->Fill((*(elec_data + 3 * i + k) +
+						       *(posi_data + 3 * j + k)).M(),
+						      (*(elec_data + 3 * i + k) +
+						       *(posi_data + 3 * j + k)).Pt()); 
+	    }
+	  }
+	  if (k == 2){
+	    if (IsElectronDetectedInALICE3(elec_true_data[i], 2) &&
+		IsElectronDetectedInALICE3(posi_true_data[j], 2)){
+	      hMassElecPosi_background_ALICE3_2->Fill((*(elec_data + 3 * i + k) +
+						       *(posi_data + 3 * j + k)).M(),
+						      (*(elec_data + 3 * i + k) +
+						       *(posi_data + 3 * j + k)).Pt()); 
+	    }
+	  }
+	  if (k == 3){
+	    if (IsElectronDetectedInALICE3(elec_true_data[i], 2) &&
+		IsElectronDetectedInALICE3(posi_true_data[j], 2)){
+	      hMassElecPosi_background_ALICE3_3->Fill((*(elec_data + 3 * i + k) +
+						       *(posi_data + 3 * j + k)).M(),
+						      (*(elec_data + 3 * i + k) +
+						       *(posi_data + 3 * j + k)).Pt()); 
+	    }
+	  }
 	}
+	
+	  
+	hMassElecPosi_true_background->Fill((elec_true_data[i] + 
+					       posi_true_data[j]).M(),
+					      (elec_true_data[i] + 
+					       posi_true_data[j]).Pt()); 
       }
     }
   }
 
+  
   // find candidates for J/psi
 
   /* 
@@ -104,33 +163,92 @@ void Background_handler(Pythia* pythia,
 
   */
 
-  Int_t Jpsi_num = 0;
-
+  Int_t Jpsi_num_ALICE0   = 0;
+  Int_t Jpsi_num_ALICE3_1 = 0;
+  Int_t Jpsi_num_ALICE3_2 = 0;
+  Int_t Jpsi_num_ALICE3_3 = 0;
+  
   if (elec_num != 0 && posi_num != 0){  
     for (int i = 0; i < elec_num; i++){
       for (int j = 0; j < posi_num; j++){
-	if (IsElectronDetectedInCTS(elec_true_data[i]) &&
+	double Jpsi_mass[4]; 
+	double Jpsi_sigma[4];
+	
+	for (int l = 0; l < 4; l++){
+	  Jpsi_mass[l] = Jpsi_Mass((elec_data[i] + posi_data[j]).Pt(), l);
+	  Jpsi_sigma[l] = Jpsi_Sigma((elec_data[i] + posi_data[j]).Pt(), l);
+	}
+;
+	  if (IsElectronDetectedInCTS(elec_true_data[i]) &&
 	    IsElectronDetectedInCTS(posi_true_data[j])){
-	  Double_t Jpsi_mass  = Jpsi_Mass((elec_data[i] + posi_data[j]).Pt());
-	  Double_t Jpsi_sigma = Jpsi_Sigma((elec_data[i] + posi_data[j]).Pt());
-	  if ( fabs((elec_data[i] + posi_data[j]).M() - Jpsi_mass) <= Jpsi_sigma){
-	    Jpsi_data[Jpsi_num] = elec_data[i] + posi_data[j];
-	    Jpsi_num++;
+	  if ( fabs((elec_data[i] + posi_data[j]).M() - Jpsi_mass[0]) <= Jpsi_sigma[0]){
+	    Jpsi_data_ALICE0[Jpsi_num_ALICE0] = elec_data[i] + posi_data[j];
+	    Jpsi_num_ALICE0++;
+	  }
+	}
+	if (IsElectronDetectedInALICE3(elec_true_data[i], 2) &&
+	    IsElectronDetectedInALICE3(posi_true_data[j], 2)){
+	  if ( fabs((elec_data[i] + posi_data[j]).M() - Jpsi_mass[1]) <= Jpsi_sigma[1]){
+	    Jpsi_data_ALICE3_1[Jpsi_num_ALICE3_1] = elec_data[i] + posi_data[j];
+	    Jpsi_num_ALICE3_1++;
+	  }
+	}
+	if (IsElectronDetectedInALICE3(elec_true_data[i], 2) &&
+	    IsElectronDetectedInALICE3(posi_true_data[j], 2)){
+	  if ( fabs((elec_data[i] + posi_data[j]).M() - Jpsi_mass[2]) <= Jpsi_sigma[2]){
+	    Jpsi_data_ALICE3_2[Jpsi_num_ALICE3_2] = elec_data[i] + posi_data[j];
+	    Jpsi_num_ALICE3_2++;
+	  }
+	}
+	if (IsElectronDetectedInALICE3(elec_true_data[i], 2) &&
+	    IsElectronDetectedInALICE3(posi_true_data[j], 2)){
+	  if ( fabs((elec_data[i] + posi_data[j]).M() - Jpsi_mass[3]) <= Jpsi_sigma[3]){
+	    Jpsi_data_ALICE3_3[Jpsi_num_ALICE3_3] = elec_data[i] + posi_data[j];
+	    Jpsi_num_ALICE3_3++;
 	  }
 	}
       }
     }
   }
-
-  if (Jpsi_num != 0 && gam_num != 0){
-    for (int i = 0; i < Jpsi_num; i++){
-      for (int j = 0; j < gam_num; j++){
-	hMassGamElecPosi_background_mass_diff->Fill((Jpsi_data[i] + gamma_data[j]).M() - Jpsi_data[i].M(),
-						    (Jpsi_data[i] + gamma_data[j]).Pt());
-      }
-    }
-  }
-
   
 
+  if (Jpsi_num_ALICE0 != 0 && gam_num != 0){
+    for (int i = 0; i < Jpsi_num_ALICE0; i++){ 
+      for (int j = 0; j < gam_num; j++){
+	if(IsPhotonDetectedInPHOS(gamma_data[j])){
+	  hMassGamElecPosi_background_mass_diff_ALICE0->Fill((Jpsi_data_ALICE0[i] + gamma_data[j]).M() - Jpsi_data_ALICE0[i].M(), (Jpsi_data_ALICE0[i] + gamma_data[j]).Pt(), br);
+	}
+      }
+    }   
+  } 
+
+  if (Jpsi_num_ALICE3_1 != 0 && gam_num != 0){
+    for (int i = 0; i < Jpsi_num_ALICE3_1; i++){ 
+      for (int j = 0; j < gam_num; j++){
+	if(IsElectronDetectedInALICE3(gamma_data[j], 1)){
+	  hMassGamElecPosi_background_mass_diff_ALICE3_1->Fill((Jpsi_data_ALICE3_1[i] + gamma_data[j]).M() - Jpsi_data_ALICE3_1[i].M(), (Jpsi_data_ALICE3_1[i] + gamma_data[j]).Pt(), br);
+	}
+      }
+    }   
+  } 
+
+  if (Jpsi_num_ALICE3_2 != 0 && gam_num != 0){
+    for (int i = 0; i < Jpsi_num_ALICE3_2; i++){ 
+      for (int j = 0; j < gam_num; j++){
+	if(IsElectronDetectedInALICE3(gamma_data[j], 1)){
+	  hMassGamElecPosi_background_mass_diff_ALICE3_2->Fill((Jpsi_data_ALICE3_2[i] + gamma_data[j]).M() - Jpsi_data_ALICE3_2[i].M(), (Jpsi_data_ALICE3_2[i] + gamma_data[j]).Pt(), br);
+	}
+      }
+    }   
+  }  
+
+  if (Jpsi_num_ALICE3_3 != 0 && gam_num != 0){
+    for (int i = 0; i < Jpsi_num_ALICE3_3; i++){ 
+      for (int j = 0; j < gam_num; j++){
+	if(IsElectronDetectedInALICE3(gamma_data[j], 1)){
+	  hMassGamElecPosi_background_mass_diff_ALICE3_3->Fill((Jpsi_data_ALICE3_3[i] + gamma_data[j]).M() - Jpsi_data_ALICE3_3[i].M(), (Jpsi_data_ALICE3_3[i] + gamma_data[j]).Pt(), br);
+	}
+      }
+    }   
+  }
 }

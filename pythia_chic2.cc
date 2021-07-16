@@ -31,15 +31,17 @@ void Invariant_mass_spectr_creator(TLorentzVector, TLorentzVector, TLorentzVecto
 				   TH2F*, TH2F*, TH2F*, TH2F*, TH2F*, TH2F*,
 				   TH2F*, TH2F*, TH2F*, TH2F*, double);
 TLorentzVector resolutionPhoton  (TLorentzVector);
-TLorentzVector resolutionElectron(TLorentzVector);
+TLorentzVector resolutionElectron(TLorentzVector, int);
 
 bool IsElectronDetectedInCTS(TLorentzVector);
 bool IsPhotonDetectedInEMCAL(TLorentzVector);
 bool IsPhotonDetectedInPHOS (TLorentzVector);
 void Background_handler (Pythia*, int *, int*, int*, int, int, int, 
 			 TLorentzVector*, TLorentzVector*, TLorentzVector*, 
+			 TLorentzVector*, TLorentzVector*, TLorentzVector*, 
 			 TLorentzVector*, TLorentzVector*, TLorentzVector*,
-			 TH2F*, TH2F*, TH2F*);
+			 TH2F*, TH2F*, TH2F*, TH2F*, TH2F*, TH2F*, TH2F*, 
+			 TH2F*, TH2F*, double);
 
 
 
@@ -71,7 +73,7 @@ int main(int argc, char* argv[]) {
   double ptMin = 0.;
   double ptMax = 50.;  //GeV
   double yMin  = 0.; 
-  double yMax  = 0.5; 
+  double yMax  = 1.; 
   double phiMin = 0.;
   double phiMax = 360.;
   
@@ -225,16 +227,32 @@ int main(int argc, char* argv[]) {
   electrons_hist_array[2]->Sumw2();
   electrons_hist_array[3]->Sumw2();
 
-  TH2F *hMassElecPosi_background = new TH2F("hMassElecPosi_background","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
-  hMassElecPosi_background->Sumw2();
+  TH2F *hMassElecPosi_background_ALICE0 = new TH2F("hMassElecPosi_background_ALICE0","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
+  hMassElecPosi_background_ALICE0->Sumw2();
+
+  TH2F *hMassElecPosi_background_ALICE3_1 = new TH2F("hMassElecPosi_background_ALICE3_1","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
+  hMassElecPosi_background_ALICE3_1->Sumw2();
+
+  TH2F *hMassElecPosi_background_ALICE3_2 = new TH2F("hMassElecPosi_background_ALICE3_2","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
+  hMassElecPosi_background_ALICE3_2->Sumw2();
+
+  TH2F *hMassElecPosi_background_ALICE3_3 = new TH2F("hMassElecPosi_background_ALICE3_3","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
+  hMassElecPosi_background_ALICE3_3->Sumw2();
   
   TH2F *hMassElecPosi_true_background = new TH2F("hMassElecPosi_true_background","M(e^{+}e^{-}) vs p_{T}", 200., 2.1, 4.1, 50, 0., 50.);
   hMassElecPosi_true_background->Sumw2();
 
-  TH2F *hMassGamElecPosi_background_mass_diff = new TH2F("hMassGamElecPosi_background_mass_diff","M(e^{+}e^{-}#gamma) - M(e^{+}e^{-}) vs p_{T}", 200., 0, 0.8, 50, 0., 50.);
-  hMassGamElecPosi_background_mass_diff->Sumw2();
- 
-
+  TH2F *hMassGamElecPosi_background_mass_diff_ALICE0 = new TH2F("hMassGamElecPosi_background_mass_diff_ALICE0","M(e^{+}e^{-}#gamma) - M(e^{+}e^{-}) vs p_{T}", 200., 0, 0.8, 50, 0., 50.);
+  hMassGamElecPosi_background_mass_diff_ALICE0->Sumw2();
+  
+  TH2F *hMassGamElecPosi_background_mass_diff_ALICE3_1 = new TH2F("hMassGamElecPosi_background_mass_diff_ALICE3_1","M(e^{+}e^{-}#gamma) - M(e^{+}e^{-}) vs p_{T}", 200., 0, 0.8, 50, 0., 50.);
+  hMassGamElecPosi_background_mass_diff_ALICE3_1->Sumw2();
+  
+  TH2F *hMassGamElecPosi_background_mass_diff_ALICE3_2 = new TH2F("hMassGamElecPosi_background_mass_diff_ALICE3_2","M(e^{+}e^{-}#gamma) - M(e^{+}e^{-}) vs p_{T}", 200., 0, 0.8, 50, 0., 50.);
+  hMassGamElecPosi_background_mass_diff_ALICE3_2->Sumw2();
+  
+  TH2F *hMassGamElecPosi_background_mass_diff_ALICE3_3 = new TH2F("hMassGamElecPosi_background_mass_diff_ALICE3_3","M(e^{+}e^{-}#gamma) - M(e^{+}e^{-}) vs p_{T}", 200., 0, 0.8, 50, 0., 50.);
+  hMassGamElecPosi_background_mass_diff_ALICE3_3->Sumw2();
   const int idChic0        =  10441;
   const int idChic1        =  20443;
   const int idChic2        =  445;
@@ -243,19 +261,22 @@ int main(int argc, char* argv[]) {
   const int idPhoton       =  22;
   const int idPi0          =  111;
 
-  int nEvent2Print = 1;
+  int nEvent2Print = 10;
 
   // Begin event loop. Generate event
 
-  int elec[5000];
-  int posi[5000];
-  int gamm[5000];
-  TLorentzVector elec_data[5000];
-  TLorentzVector posi_data[5000];
-  TLorentzVector gamma_data[5000];
-  TLorentzVector elec_true_data[5000];
-  TLorentzVector posi_true_data[5000];
-  TLorentzVector Jpsi_data[5000];
+  int elec[2000];
+  int posi[2000];
+  int gamm[2000];
+  TLorentzVector elec_data[2000][4];
+  TLorentzVector posi_data[2000][4];
+  TLorentzVector gamma_data[2000][4];
+  TLorentzVector elec_true_data[2000];
+  TLorentzVector posi_true_data[2000];
+  TLorentzVector Jpsi_data_ALICE0[2000];
+  TLorentzVector Jpsi_data_ALICE3_1[2000];
+  TLorentzVector Jpsi_data_ALICE3_2[2000];
+  TLorentzVector Jpsi_data_ALICE3_3[2000];
 
   int iEvent2Print = 0;
   for (int iEvent = 0; iEvent < nEvents; ++iEvent) {
@@ -268,19 +289,31 @@ int main(int argc, char* argv[]) {
     // Loop over all particles in the generated event
     double px,py,pz,p0;
 
-    /*
-
-    int* elec = new int[pythia.event.size()];
-    int* posi = new int[pythia.event.size()];
-    int* gamm = new int[pythia.event.size()];
-
-    */
 
     int elec_num = 0;
     int posi_num = 0;
     int gam_num = 0;
+    double event_weight = 1.;
     
     for (int i = 0; i < pythia.event.size(); ++i) {
+
+      /* if (pythia.event[i].id() == idJpsi){
+	int dghtJpsi1 = pythia.event[i].daughter1(); // first daughter
+	int dghtJpsi2 = pythia.event[i].daughter2(); // last  daughter
+	
+	if (dghtJpsi2 - dghtJpsi1 != 1) continue;
+	if (pythia.event[dghtJpsi1].id() == idElectron){
+	  *(elec + elec_num) = dghtJpsi1;
+          elec_num++;
+	}
+
+	if (pythia.event[dghtJpsi2].id() == (-1) * idElectron){
+	  *(posi + posi_num) = dghtJpsi2;
+	  posi_num++;
+	}
+      }*/
+      
+
 
       if (pythia.event[i].id() == idElectron){	
 	*(elec + elec_num) = i;
@@ -290,20 +323,26 @@ int main(int argc, char* argv[]) {
       if (pythia.event[i].id() == -1 * idElectron){	
 	*(posi + posi_num) = i;
 	  posi_num++;
-      }
+	  }
       
       if (pythia.event[i].id() == idPhoton){	
 	*(gamm + gam_num) = i;
 	  gam_num++;
+	  }
+      
+      if(pythia.event[i].id() == idJpsi &&
+	 !(event_weight < 1.)           &&
+	 pythia.event[i].status() == -91){      
+	 event_weight = 5.971e-2;
       }
-	
-
       
 
       // Select final-state chi_c2 within |y|<0.5
       if (pythia.event[i].id() == idChic2 &&
 	  pythia.event[i].status() == -62 &&
 	  fabs(pythia.event[i].y()) <= ymax) {
+	
+	event_weight = br[2];
 
 	Double_t pt = pythia.event[i].pT(); // transverse momentum 
 	hChiC2_pt_all->Fill(pt);
@@ -376,7 +415,7 @@ int main(int argc, char* argv[]) {
 	      }
 	
 	      TLorentzVector pElec(px,py,pz,p0);
-	      TLorentzVector pElec_smeared = resolutionElectron(pElec);
+	      TLorentzVector pElec_smeared = resolutionElectron(pElec, 0);
 	      
 		
 	      px = pythia.event[dghtJ2].px();
@@ -387,7 +426,7 @@ int main(int argc, char* argv[]) {
 	  
 
 	      TLorentzVector pPosi(px,py,pz,p0);
-	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi);
+	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi, 0);
 
 	      hPositron_pt_all->Fill(pPosi_smeared.Pt());
 	      hElectron_pt_all->Fill(pElec_smeared.Pt());
@@ -440,6 +479,8 @@ int main(int argc, char* argv[]) {
       if (pythia.event[i].id() == idChic0 &&
 	  pythia.event[i].status() ==-62 &&
 	  fabs(pythia.event[i].y()) <= ymax) {
+
+	event_weight = br[0];
 
 	Double_t pt = pythia.event[i].pT(); // transverse momentum
 	hChiC0_pt_all->Fill(pt);
@@ -511,7 +552,7 @@ int main(int argc, char* argv[]) {
 	
 	      TLorentzVector pElec(px,py,pz,p0);
 
-	      TLorentzVector pElec_smeared = resolutionElectron(pElec);
+	      TLorentzVector pElec_smeared = resolutionElectron(pElec, 0);
 		
 	      px = pythia.event[dghtJ2].px();
 	      py = pythia.event[dghtJ2].py();
@@ -520,7 +561,7 @@ int main(int argc, char* argv[]) {
 
 	      TLorentzVector pPosi(px,py,pz,p0);
 
-	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi);
+	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi, 0);
 
 
 	      Invariant_mass_spectr_creator(pElec_smeared, pPosi_smeared, pGam_smeared,
@@ -574,6 +615,8 @@ int main(int argc, char* argv[]) {
       if (pythia.event[i].id() == idChic1 &&
 	  pythia.event[i].status() ==-62 &&
 	  fabs(pythia.event[i].y()) <= ymax) {
+
+	event_weight = br[1];
 
 	Double_t pt = pythia.event[i].pT(); // transverse momentum
 	hChiC1_pt_all->Fill(pt);
@@ -648,7 +691,7 @@ int main(int argc, char* argv[]) {
 	
 	      TLorentzVector pElec(px,py,pz,p0);
 
-	      TLorentzVector pElec_smeared = resolutionElectron(pElec);
+	      TLorentzVector pElec_smeared = resolutionElectron(pElec, 0);
 		
 	      px = pythia.event[dghtJ2].px();
 	      py = pythia.event[dghtJ2].py();
@@ -657,7 +700,7 @@ int main(int argc, char* argv[]) {
 
 	      TLorentzVector pPosi(px,py,pz,p0);
 
-	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi);
+	      TLorentzVector pPosi_smeared = resolutionElectron(pPosi, 0);
 
 	      Invariant_mass_spectr_creator(pElec_smeared, pPosi_smeared, pGam_smeared,
 					    hMassElecPosi, hMassGamElecPosi, hMassGamElecPosi_diff, hMassGamElecPosi_cndtn_1,
@@ -743,11 +786,26 @@ int main(int argc, char* argv[]) {
     
     // in this place we should make combinatory background    
 
-    Background_handler(&(pythia), elec, posi, gamm, elec_num, posi_num, gam_num, 
-		       elec_data, posi_data, gamma_data, 
-		       elec_true_data, posi_true_data, Jpsi_data, 
-		       hMassElecPosi_background, hMassElecPosi_true_background,
-		       hMassGamElecPosi_background_mass_diff);
+    Background_handler(&(pythia), elec, posi, gamm, 
+		       elec_num, posi_num, gam_num, 
+		       &(elec_data[0][0]), 
+		       &(posi_data[0][0]), 
+		       &(gamma_data[0][0]), 
+		       elec_true_data, posi_true_data, 
+		       Jpsi_data_ALICE0,
+		       Jpsi_data_ALICE3_1,
+		       Jpsi_data_ALICE3_2,
+		       Jpsi_data_ALICE3_3,
+		       hMassElecPosi_background_ALICE0,
+		       hMassElecPosi_background_ALICE3_1,
+		       hMassElecPosi_background_ALICE3_2,
+		       hMassElecPosi_background_ALICE3_3,
+		       hMassElecPosi_true_background, 
+		       hMassGamElecPosi_background_mass_diff_ALICE0, 
+		       hMassGamElecPosi_background_mass_diff_ALICE3_1, 
+		       hMassGamElecPosi_background_mass_diff_ALICE3_2, 
+		       hMassGamElecPosi_background_mass_diff_ALICE3_3,
+		       1.);
         
     elec_num = 0;
     posi_num = 0;
@@ -768,38 +826,67 @@ int main(int argc, char* argv[]) {
   double ptBinSize = (ptMax-ptMin) / nPtBins;
   double yBinSize  = (yMax-yMin) / nyBins;
 
-  hChiC_phi_cndtn_3        ->Scale(sigmaweight/(1. * 2. * 360.)); 
-  hChiC2_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC0_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC1_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hGamma_pt_all            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hGamma_chic0_pt_all      ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hGamma_chic1_pt_all      ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hElectron_pt_all         ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hElectron_chic0_pt_all   ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hElectron_chic1_pt_all   ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hPositron_pt_all         ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hPositron_chic0_pt_all   ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hPositron_chic1_pt_all   ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC2_pt_cndtn_1        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC0_pt_cndtn_1        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC1_pt_cndtn_1        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC2_pt_cndtn_2        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC0_pt_cndtn_2        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC1_pt_cndtn_2        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC2_pt_cndtn_3        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC0_pt_cndtn_3        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC1_pt_cndtn_3        ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
-  hChiC2_y_cndtn_1         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-  hChiC0_y_cndtn_1         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-  hChiC1_y_cndtn_1         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-  hChiC2_y_cndtn_2         ->Scale(sigmaweight/(yBinSize * 2. * ymax)); 
-  hChiC0_y_cndtn_2         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-  hChiC1_y_cndtn_2         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-  hChiC2_y_cndtn_3         ->Scale(sigmaweight/(yBinSize * 2. * ymax)); 
-  hChiC0_y_cndtn_3         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-  hChiC1_y_cndtn_3         ->Scale(sigmaweight/(yBinSize * 2. * ymax));
-
+  hChiC_phi_cndtn_3                                 ->Scale(sigmaweight/(1. * 2. * 360.)); 
+  hChiC2_pt_all                                     ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC0_pt_all                                     ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC1_pt_all                                     ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hGamma_pt_all                                     ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hGamma_chic0_pt_all                               ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hGamma_chic1_pt_all                               ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hElectron_pt_all                                  ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hElectron_chic0_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hElectron_chic1_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hPositron_pt_all                                  ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hPositron_chic0_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hPositron_chic1_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC2_pt_cndtn_1                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC0_pt_cndtn_1                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC1_pt_cndtn_1                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC2_pt_cndtn_2                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC0_pt_cndtn_2                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC1_pt_cndtn_2                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC2_pt_cndtn_3                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC0_pt_cndtn_3                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC1_pt_cndtn_3                                 ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hChiC2_y_cndtn_1                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hChiC0_y_cndtn_1                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hChiC1_y_cndtn_1                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hChiC2_y_cndtn_2                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax)); 
+  hChiC0_y_cndtn_2                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hChiC1_y_cndtn_2                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hChiC2_y_cndtn_3                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax)); 
+  hChiC0_y_cndtn_3                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hChiC1_y_cndtn_3                                  ->Scale(sigmaweight/(yBinSize * 2. * ymax));
+  hGamma_pt_all                                     ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hGamma_chic0_pt_all                               ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hGamma_chic1_pt_all                               ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hElectron_pt_all                                  ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hElectron_chic0_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hElectron_chic1_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hPositron_pt_all                                  ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hPositron_chic0_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hPositron_chic1_pt_all                            ->Scale(sigmaweight/(ptBinSize * 2. * ymax));
+  hMass2Gamma                                       ->Scale(sigmaweight/((0.3/150)*(50./50)));
+  hMassElecPosi                                     ->Scale(sigmaweight/(((4.1 - 2.1)/200)*(50./50)));
+  hMassGamElecPosi                                  ->Scale(sigmaweight/(((4. - 3.)/200)*(50./50)));
+  hMassGamElecPosi_diff                             ->Scale(sigmaweight/(((0.8 - 0.0)/160)*(50./50)));
+  hMassGamElecPosi_cndtn_1                          ->Scale(sigmaweight/(((4. - 3.)/200)*(50./50)));
+  hMassGamElecPosi_cndtn_2                          ->Scale(sigmaweight/(((4. - 3.)/200)*(50./50)));
+  hMassGamElecPosi_cndtn_3                          ->Scale(sigmaweight/(((4. - 3.)/200)*(50./50)));
+  hMassGamElecPosi_mass_diff                        ->Scale(sigmaweight/(((0.8 - 0.0)/160)*(50./50)));
+  hMassGamElecPosi_mass_diff_cndtn_1                ->Scale(sigmaweight/(((0.8 - 0.0)/160)*(50./50)));
+  hMassGamElecPosi_mass_diff_cndtn_2                ->Scale(sigmaweight/(((0.8 - 0.0)/160)*(50./50)));
+  hMassGamElecPosi_mass_diff_cndtn_3                ->Scale(sigmaweight/(((0.8 - 0.0)/160)*(50./50)));
+  hChiC_electrons_phi_rapid                         ->Scale(sigmaweight/(((TMath::TwoPi())/360)*(2*0.7/100)));
+  hMassElecPosi_background_ALICE0                   ->Scale(sigmaweight/(((4.1 - 2.1)/200)*(50./50)));
+  hMassElecPosi_background_ALICE3_1                 ->Scale(sigmaweight/(((4.1 - 2.1)/200)*(50./50)));
+  hMassElecPosi_background_ALICE3_2                 ->Scale(sigmaweight/(((4.1 - 2.1)/200)*(50./50)));
+  hMassElecPosi_background_ALICE3_3                 ->Scale(sigmaweight/(((4.1 - 2.1)/200)*(50./50)));
+  hMassElecPosi_true_background                     ->Scale(sigmaweight/(((4.1 - 2.1)/200)*(50./50)));
+  hMassGamElecPosi_background_mass_diff_ALICE0      ->Scale(sigmaweight/(((0.8 - 0.0)/200)*(50./50)));
+  hMassGamElecPosi_background_mass_diff_ALICE3_1    ->Scale(sigmaweight/(((0.8 - 0.0)/200)*(50./50)));
+  hMassGamElecPosi_background_mass_diff_ALICE3_2    ->Scale(sigmaweight/(((0.8 - 0.0)/200)*(50./50)));
+  hMassGamElecPosi_background_mass_diff_ALICE3_3    ->Scale(sigmaweight/(((0.8 - 0.0)/200)*(50./50)));
   // Save histogram on file and close file.
   char fn[1024];
   sprintf(fn, "%s", "pythia_chic2.root");
@@ -852,9 +939,15 @@ int main(int argc, char* argv[]) {
   electrons_hist_array[1]                           ->Write();
   electrons_hist_array[2]                           ->Write();
   electrons_hist_array[3]                           ->Write();
-  hMassElecPosi_background                          ->Write();
+  hMassElecPosi_background_ALICE0                   ->Write();
+  hMassElecPosi_background_ALICE3_1                 ->Write();
+  hMassElecPosi_background_ALICE3_2                 ->Write();
+  hMassElecPosi_background_ALICE3_3                 ->Write();
   hMassElecPosi_true_background                     ->Write();
-  hMassGamElecPosi_background_mass_diff             ->Write();
+  hMassGamElecPosi_background_mass_diff_ALICE0      ->Write();
+  hMassGamElecPosi_background_mass_diff_ALICE3_1    ->Write();
+  hMassGamElecPosi_background_mass_diff_ALICE3_2    ->Write();
+  hMassGamElecPosi_background_mass_diff_ALICE3_3    ->Write();
 
 
   outFile->Close();
